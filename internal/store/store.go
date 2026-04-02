@@ -1,23 +1,26 @@
 package store
 import ("database/sql";"fmt";"os";"path/filepath";"time";_ "modernc.org/sqlite")
 type DB struct{db *sql.DB}
-type Item struct{
+type Question struct {
 	ID string `json:"id"`
-	Name string `json:"name"`
-	Description string `json:"description"`
-	Status string `json:"status"`
-	Category string `json:"category"`
+	Title string `json:"title"`
+	Body string `json:"body"`
+	Author string `json:"author"`
 	Tags string `json:"tags"`
+	Votes int `json:"votes"`
+	AnswerCount int `json:"answer_count"`
+	Accepted int `json:"accepted"`
+	Status string `json:"status"`
 	CreatedAt string `json:"created_at"`
 }
 func Open(d string)(*DB,error){if err:=os.MkdirAll(d,0755);err!=nil{return nil,err};db,err:=sql.Open("sqlite",filepath.Join(d,"soapbox.db")+"?_journal_mode=WAL&_busy_timeout=5000");if err!=nil{return nil,err}
-db.Exec(`CREATE TABLE IF NOT EXISTS items(id TEXT PRIMARY KEY,name TEXT NOT NULL,description TEXT DEFAULT '',status TEXT DEFAULT 'active',category TEXT DEFAULT '',tags TEXT DEFAULT '',created_at TEXT DEFAULT(datetime('now')))`)
+db.Exec(`CREATE TABLE IF NOT EXISTS questions(id TEXT PRIMARY KEY,title TEXT NOT NULL,body TEXT DEFAULT '',author TEXT DEFAULT '',tags TEXT DEFAULT '',votes INTEGER DEFAULT 0,answer_count INTEGER DEFAULT 0,accepted INTEGER DEFAULT 0,status TEXT DEFAULT 'open',created_at TEXT DEFAULT(datetime('now')))`)
 return &DB{db:db},nil}
 func(d *DB)Close()error{return d.db.Close()}
 func genID()string{return fmt.Sprintf("%d",time.Now().UnixNano())}
 func now()string{return time.Now().UTC().Format(time.RFC3339)}
-func(d *DB)Create(e *Item)error{e.ID=genID();e.CreatedAt=now();_,err:=d.db.Exec(`INSERT INTO items(id,name,description,status,category,tags,created_at)VALUES(?,?,?,?,?,?,?)`,e.ID,e.Name,e.Description,e.Status,e.Category,e.Tags,e.CreatedAt);return err}
-func(d *DB)Get(id string)*Item{var e Item;if d.db.QueryRow(`SELECT id,name,description,status,category,tags,created_at FROM items WHERE id=?`,id).Scan(&e.ID,&e.Name,&e.Description,&e.Status,&e.Category,&e.Tags,&e.CreatedAt)!=nil{return nil};return &e}
-func(d *DB)List()[]Item{rows,_:=d.db.Query(`SELECT id,name,description,status,category,tags,created_at FROM items ORDER BY created_at DESC`);if rows==nil{return nil};defer rows.Close();var o []Item;for rows.Next(){var e Item;rows.Scan(&e.ID,&e.Name,&e.Description,&e.Status,&e.Category,&e.Tags,&e.CreatedAt);o=append(o,e)};return o}
-func(d *DB)Delete(id string)error{_,err:=d.db.Exec(`DELETE FROM items WHERE id=?`,id);return err}
-func(d *DB)Count()int{var n int;d.db.QueryRow(`SELECT COUNT(*) FROM items`).Scan(&n);return n}
+func(d *DB)Create(e *Question)error{e.ID=genID();e.CreatedAt=now();_,err:=d.db.Exec(`INSERT INTO questions(id,title,body,author,tags,votes,answer_count,accepted,status,created_at)VALUES(?,?,?,?,?,?,?,?,?,?)`,e.ID,e.Title,e.Body,e.Author,e.Tags,e.Votes,e.AnswerCount,e.Accepted,e.Status,e.CreatedAt);return err}
+func(d *DB)Get(id string)*Question{var e Question;if d.db.QueryRow(`SELECT id,title,body,author,tags,votes,answer_count,accepted,status,created_at FROM questions WHERE id=?`,id).Scan(&e.ID,&e.Title,&e.Body,&e.Author,&e.Tags,&e.Votes,&e.AnswerCount,&e.Accepted,&e.Status,&e.CreatedAt)!=nil{return nil};return &e}
+func(d *DB)List()[]Question{rows,_:=d.db.Query(`SELECT id,title,body,author,tags,votes,answer_count,accepted,status,created_at FROM questions ORDER BY created_at DESC`);if rows==nil{return nil};defer rows.Close();var o []Question;for rows.Next(){var e Question;rows.Scan(&e.ID,&e.Title,&e.Body,&e.Author,&e.Tags,&e.Votes,&e.AnswerCount,&e.Accepted,&e.Status,&e.CreatedAt);o=append(o,e)};return o}
+func(d *DB)Delete(id string)error{_,err:=d.db.Exec(`DELETE FROM questions WHERE id=?`,id);return err}
+func(d *DB)Count()int{var n int;d.db.QueryRow(`SELECT COUNT(*) FROM questions`).Scan(&n);return n}
